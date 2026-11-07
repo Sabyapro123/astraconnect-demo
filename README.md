@@ -30,7 +30,7 @@ A second persona, Neha in Hinjewadi, Pune, runs the same flow for a Velocity 200
 
 ## Demo video
 
-A 1 minute 53 second full HD walkthrough with captions and background music is in `media/AstraConnect_demo.mp4`, also at https://sabyapro123.github.io/astraconnect-demo/media/AstraConnect_demo.mp4.
+A 1 minute 53 second full HD walkthrough with explanatory captions and background music is in `media/AstraConnect_demo.mp4`, also at https://sabyapro123.github.io/astraconnect-demo/media/AstraConnect_demo.mp4.
 
 ## How to run it
 
