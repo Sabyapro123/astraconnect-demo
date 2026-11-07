@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AstraConnect | Catch Before You Chase</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">A</div>
+    <div>
+      <div class="brand-name">AstraConnect</div>
+      <div class="brand-sub">Catch Before You Chase · Digital-to-Dealer engine</div>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button data-view="live" class="active">Live demo</button>
+    <button data-view="journey">Journey</button>
+    <button data-view="agents">AI agents</button>
+    <button data-view="map">Routing map</button>
+    <button data-view="tower">Control Tower</button>
+  </nav>
+  <div class="controls">
+    <select id="persona" title="Choose a customer">
+      <option value="rohan">Rohan · TrailX 310 · Mumbai</option>
+      <option value="neha">Neha · Velocity 200 · Pune</option>
+    </select>
+    <button id="autoplay" class="primary">▶ Play journey</button>
+    <button id="reset">Reset</button>
+  </div>
+</header>
+<div class="disclaimer">Prototype for the TVS RiDE case by Team ChampsGrid, IIM Mumbai. AstraMoto, all people, dealers and figures are fictitious. Agents are simulated in the browser.</div>
+
+<!-- STEP TRACKER -->
+<section class="tracker" id="tracker"></section>
+<div class="caption" id="caption">Press "Play journey" for the guided story, or click through Rohan's phone yourself.</div>
+
+<main>
+<!-- LIVE VIEW -->
+<section class="view active" id="view-live">
+  <div class="live-grid">
+    <div class="col">
+      <div class="col-title"><span class="dot navy"></span>Customer's phone</div>
+      <div class="phone"><div class="notch"></div><div class="screen" id="cust-screen"></div></div>
+    </div>
+    <div class="col mid">
+      <div class="col-title"><span class="dot green"></span>Rider Desk console</div>
+      <div class="panel" id="desk"></div>
+      <div class="col-title"><span class="dot purple"></span>Agent activity</div>
+      <div class="panel log" id="agentlog"></div>
+    </div>
+    <div class="col">
+      <div class="col-title"><span class="dot orange"></span>Dealer advisor's phone</div>
+      <div class="phone"><div class="notch"></div><div class="screen" id="adv-screen"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- JOURNEY VIEW -->
+<section class="view" id="view-journey">
+  <h2>The journey in four steps</h2>
+  <p class="lead">Every customer moves through the same engine. Each step fixes one root problem from the case.</p>
+  <div class="engine">
+    <div class="eng sense"><h3>1. SENSE</h3><p>Fixes BLIND</p><ul><li>YouTube and Google lead forms, sent by webhook in seconds</li><li>Meta lead forms</li><li>Tagged creator links and QR codes</li><li>Website events after cookie consent</li><li>WhatsApp and showroom walk-ins</li></ul></div>
+    <div class="eng think"><h3>2. THINK</h3><p>Fixes GENERIC</p><ul><li>One customer record in AstraConnect Core</li><li>Lead score: Tier A, B or C</li><li>Pincode to nearest Premium Pickup dealer</li><li>Pickup Card written in plain words</li></ul></div>
+    <div class="eng act"><h3>3. ACT</h3><p>Fixes SLOW</p><ul><li>WhatsApp reply in 30 seconds</li><li>Human Rider Desk call within 15 minutes</li><li>Ride confirmed on a real demo bike</li><li>Advisor follows up; dealer makes the sale</li></ul></div>
+    <div class="eng learn"><h3>4. LEARN</h3><p>Fixes WRONG METER</p><ul><li>Coded sale sent back to Google and Meta</li><li>Score model retrained</li><li>Holdout tests and three-ledger credit</li><li>Budget moves to channels below ₹15,422 per sale</li></ul></div>
+  </div>
+  <h2>The eleven steps for <span id="jname">Rohan</span></h2>
+  <div class="table-wrap"><table class="steps" id="steptable"></table></div>
+  <h2>What Google, YouTube and Meta really share</h2>
+  <div class="table-wrap"><table class="steps">
+    <tr><th>Source</th><th>Shares with AstraMoto</th><th>Never shares</th></tr>
+    <tr><td>YouTube and Google lead form ads</td><td>What the person types (name, phone, pincode) plus campaign, ad group, video creative and click ID, by webhook within seconds</td><td>Viewing history of people who did not fill the form</td></tr>
+    <tr><td>Google Ads location targeting</td><td>Shows ads only within a chosen radius of at least 1 km</td><td>Who exactly saw the ad</td></tr>
+    <tr><td>Ads Data Hub and Google Ads reports</td><td>Area-level totals with at least 50 users per row</td><td>Any individual</td></tr>
+    <tr><td>Meta lead ads</td><td>Form data by webhook in about 60 seconds</td><td>Private messages or group activity</td></tr>
+    <tr><td>AstraMoto website, QR codes, WhatsApp</td><td>Everything the customer does with AstraMoto after consent</td><td>Nothing outside AstraMoto</td></tr>
+  </table></div>
+</section>
+
+<!-- AGENTS VIEW -->
+<section class="view" id="view-agents">
+  <h2>Nine AI agents, one job each</h2>
+  <p class="lead">Agents never sell, never negotiate and never contact anyone without consent. A human makes the first call and the dealer makes every sale.</p>
+  <div class="agents" id="agentcards"></div>
+</section>
+
+<!-- MAP VIEW -->
+<section class="view" id="view-map">
+  <h2>Routing and regional demand</h2>
+  <p class="lead">The Routing Agent sends each lead to the nearest Premium Pickup dealer by pincode. Area demand comes only from aggregated reports, never from identified people.</p>
+  <div class="map-wrap"><div id="map"></div><div class="map-side" id="mapside"></div></div>
+</section>
+
+<!-- TOWER VIEW -->
+<section class="view" id="view-tower">
+  <h2>Control Tower</h2>
+  <p class="lead">The live view the President and the Head of Digital watch every week. Numbers move as the demo runs.</p>
+  <div class="kpis" id="kpis"></div>
+  <div class="tower-grid">
+    <div class="panel"><h3>RoMI path</h3><div id="gauge"></div><p class="small">2.11x in FY26. Target 2.25x. Plan 2.30x with zero market growth, 2.36x with 12% growth.</p></div>
+    <div class="panel"><h3>Cost per sale against the ₹15,422 hurdle</h3><div id="channels"></div></div>
+    <div class="panel"><h3>Three ledgers (FY26 base)</h3><div id="ledgers"></div></div>
+  </div>
+</section>
+</main>
+
+<footer>AstraConnect demo · Team ChampsGrid, IIM Mumbai · TVS RiDE Marketing Case, Round 2 · Built as a static prototype; no real customer data is collected.</footer>
+
+<div class="toast" id="toast"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
