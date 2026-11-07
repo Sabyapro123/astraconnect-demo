@@ -28,6 +28,10 @@ A second persona, Neha in Hinjewadi, Pune, runs the same flow for a Velocity 200
 - Routing map: leads by pincode from AstraMoto's own data, dealers, the route from the buyer to the chosen dealer, and one area with no dealer nearby.
 - Control Tower: contact speed (target 55% within 15 minutes), advisor context, test rides, cost per extra sale against the ₹15,422 hurdle, the RoMI gauge and the three attribution ledgers.
 
+## Demo video
+
+A 1 minute 52 second walkthrough with on-screen captions is in `media/AstraConnect_demo.mp4`, also at https://sabyapro123.github.io/astraconnect-demo/media/AstraConnect_demo.mp4.
+
 ## How to run it
 
 Open `index.html` in a browser, choose a persona and press "Play journey". You can also click through the steps by hand. The OTP in the demo is 1234.
