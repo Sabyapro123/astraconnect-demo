@@ -14,7 +14,9 @@ const PERSONAS = {
     opening: "Hi Rohan, I saw you were checking the 36-month EMI for the TrailX. Shall I confirm that number for you first?",
     score: 86, tier: "A", evl: 7391,
     watched: "Long-form TrailX touring review, then one more video on our site",
-    visits: "TrailX page 4 times", emoji: "🏍️"
+    visits: "TrailX page 4 times", emoji: "🏍️",
+    townHi: "Hi! Powai Ride Circle", townWhen: "this Thursday, 7 pm", he: "he", him: "him", app: "YouTube", townPlace: "Powai cafe", later: "Sunday 9:38 pm", base: [0, "21:38"],
+    altSlots: ["Saturday 4:00 pm", "Sunday 10:00 am"], dealerFirst: false, onDuty: 26, hello: "Good evening"
   },
   neha: {
     key: "neha", name: "Neha Kulkarni", short: "Neha K.", age: 22, city: "Pune", area: "Hinjewadi", pincode: "411057",
@@ -30,28 +32,47 @@ const PERSONAS = {
     opening: "Hi Neha, your Velocity 200 EMI comes to about ₹4,144 a month. Shall I check a pre-approval for you right now?",
     score: 79, tier: "A", evl: 6732,
     watched: "Instagram Reel on a first bike after a first salary",
-    visits: "Velocity 200 page 3 times", emoji: "🛵"
+    visits: "Velocity 200 page 3 times", emoji: "🛵",
+    townHi: "Hi! First Bike Night", townWhen: "this Thursday, 7 pm", he: "she", him: "her", app: "Instagram", townPlace: "Hinjewadi IT-park cafe", later: "Monday 8:12 pm", base: [1, "20:12"],
+    altSlots: ["Thursday 7:00 pm", "Saturday 11:00 am"], dealerFirst: false, onDuty: 26, hello: "Good evening"
+  },
+  imran: {
+    key: "imran", name: "Imran Shaikh", short: "Imran S.", age: 29, city: "Thane", area: "Thane West", pincode: "400601",
+    phone: "99XXXXX731", model: "Velocity X310", segment: "Premium Street", price: 265000, tenure: 36, emiTarget: 7320,
+    persona: "Upgrader in a hurry", source: "Google search ad lead form",
+    creative: "Velocity X310 on the Ghodbunder Road: owner review",
+    creator: "ThaneThrottle (local riding creator)", campaign: "VX310_Thane_Search", creativeId: "srch_51920",
+    town: "Thane owners' Sunday breakfast ride", townPoster: "Upvan Lake cafe poster",
+    rival: "a rival 300cc street bike", dealer: "Thane Ride Point, Thane West", advisor: "Kavita",
+    lat: 19.2183, lng: 72.9781, home: [19.2050, 72.9700],
+    rideSlot: "Thursday 6:30 pm", rideType: "30-minute ride on the Ghodbunder Road after work",
+    bike: "Velocity X310 demo bike #1", nba: "Answer the down-payment question first, offer the Thursday evening ride, bring the finance desk in.",
+    opening: "Hi Imran, I saw you were checking the down payment on the Velocity X310. Shall I give you the exact number first?",
+    score: 68, tier: "B", evl: 5968,
+    watched: "Owner review on YouTube, then a Google search for the X310 price",
+    visits: "Velocity X310 page 3 times", emoji: "🏍️",
+    townHi: "Hi! Sunday breakfast ride", townWhen: "this Sunday, 7 am", he: "he", him: "him", app: "YouTube", townPlace: "Upvan Lake cafe", later: "Tuesday 1:58 pm", base: [2, "13:58"],
+    altSlots: ["Friday 7:00 pm", "Saturday 10:00 am"], dealerFirst: true, onDuty: 13, hello: "Good afternoon"
   }
 };
 
 const QUEUE_SEED = [
-  { name: "Imran S.", area: "Thane", model: "Velocity X310", tier: "B", evl: 5968, signal: "EMI calculator used", age: 380 },
+  { name: "Imran S.", area: "Thane", model: "Velocity X310", tier: "B", evl: 5968, signal: "EMI calculator used", age: 380, key: "imran" },
+  { name: "Rahul P.", area: "Malad", model: "TrailX 310", tier: "B", evl: 5968, signal: "EMI calculator used", age: 450 },
   { name: "Priya N.", area: "Bandra", model: "Nomad 250", tier: "B", evl: 5066, signal: "3+ product pages", age: 610 },
   { name: "Vikram R.", area: "Navi Mumbai", model: "Velocity 200", tier: "C", evl: 1006, signal: "Single visit", age: 900 },
   { name: "Asha D.", area: "Powai", model: "RS310", tier: "C", evl: 1006, signal: "Single visit", age: 1300 }
 ];
 
 const AGENTS = [
-  { id: 1, name: "Signal Agent", job: "Catch every signal the moment it arrives", gets: "Webhooks from Google and Meta, website events, QR scans, WhatsApp messages", makes: "A clean event with its source", human: "None needed", on: "AstraConnect Core" },
-  { id: 2, name: "Identity and Consent Agent", job: "Join signals into one person and check what he allowed", gets: "Events, phone number, consent ticks", makes: "One profile with consent level 1, 2 or 3", human: "Data Protection Officer audits weekly", on: "AstraConnect Core" },
-  { id: 3, name: "Scoring Agent", job: "Decide how hot the lead is", gets: "The profile's behaviour", makes: "Tier A, B or C and a score from 0 to 100", human: "Rider Desk lead can override", on: "Rules first, then MotoMind AI" },
-  { id: 4, name: "Routing Agent", job: "Pick the nearest dealer, advisor and demo bike", gets: "Pincode, dealer list, duty roster, bike calendar", makes: "Dealer and advisor name", human: "Dealer manager can reassign", on: "MotoMind and RideNow 2.0" },
-  { id: 5, name: "WhatsApp Agent", job: "Acknowledge at once and answer simple questions", gets: "New lead, saved EMI quote", makes: "Confirmation within 30 seconds", human: "Hands over to a human beyond FAQs", on: "WhatsApp Business API" },
-  { id: 6, name: "Briefing Agent", job: "Write the Pickup Card in plain words", gets: "Profile, score, consent level", makes: "One-screen Card with opening line and next best action", human: "Advisor reads it before the call", on: "MotoMind with a language model" },
-  { id: 7, name: "Ride Agent", job: "Turn a ride request into a ride", gets: "Ride request, bike calendar", makes: "Confirmed slot and reminders", human: "Dealer confirms the bike is ready", on: "RideNow 2.0" },
-  { id: 8, name: "Follow-up Agent", job: "Make sure nobody is forgotten", gets: "Ride completed, no booking yet", makes: "Follow-up within 24 hours, alert to advisor", human: "Advisor sends or edits", on: "RideNow 2.0 and CRM" },
-  { id: 9, name: "Learning Agent", job: "Make tomorrow better than today", gets: "Sales from the dealer system", makes: "Coded sale sent to Google and Meta, retrained score", human: "Head of Digital approves budget shifts", on: "Intelligent retargeting" }
+  { id: 1, name: "Capture Agent", ph: "SENSE", job: "Catch every signal and join it into one person, with his consent level", gets: "Webhooks from Google and Meta, website events, QR scans, WhatsApp messages", makes: "One profile per phone number, with its source and consent level 1, 2 or 3", human: "Data Protection Officer audits monthly", on: "Rules in the existing CRM; AstraConnect Core from the scale phase" },
+  { id: 2, name: "Score-and-Route Agent", ph: "THINK", job: "Decide how hot the lead is and who should call", gets: "Profile, pincode, showroom hours, advisor roster", makes: "Tier A, B or C, a score, the dealer, and the advisor or the Rider Desk", human: "Dealer manager can reassign", on: "A rules table in the pilot; MotoMind AI after Gate 1" },
+  { id: 3, name: "Card Agent", ph: "THINK", job: "Write the Pickup Card in plain words", gets: "Profile, score, consent level", makes: "One-screen Card with an opening line and the next best action", human: "The advisor reads it before the call", on: "The only agent with a language model (Agentforce)" },
+  { id: 4, name: "Nudge Agent", ph: "ACT", job: "Keep the customer moving without a human chasing him", gets: "New lead, ride request, ride completed, no booking", makes: "WhatsApp reply in 30 seconds, ride confirmation and reminders, follow-up within 24 hours", human: "The advisor sends or edits any follow-up", on: "Salesforce Flow, WhatsApp Business Platform, RideNow 2.0" },
+  { id: 5, name: "Learning Agent", ph: "LEARN", job: "Make tomorrow better than today", gets: "Sales from the dealer system", makes: "Coded sale sent to Google and Meta, holdout reports, retrained score", human: "Head of Digital approves budget shifts", on: "Intelligent retargeting and the platforms' conversion APIs" }
 ];
+// Version 1 had nine agents. Old event ids map onto the five merged agents.
+const AGENT_MAP = { 1: 1, 2: 1, 3: 2, 4: 2, 5: 4, 6: 3, 7: 4, 8: 4, 9: 5 };
 
 const STEPS = [
   { n: 1, ph: "SENSE", t: "Discovery", d: "Creator video, ad shown only near the dealer" },
@@ -60,7 +81,7 @@ const STEPS = [
   { n: 4, ph: "SENSE", t: "Raises hand", d: "OTP and consent level 3" },
   { n: 5, ph: "THINK", t: "Agents decide", d: "Tier, dealer, Card" },
   { n: 6, ph: "ACT", t: "WhatsApp", d: "Reply in 30 seconds" },
-  { n: 7, ph: "ACT", t: "Human call", d: "Within 15 minutes" },
+  { n: 7, ph: "ACT", t: "Human call", d: "Dealer first, Desk catches, within 15 minutes" },
   { n: 8, ph: "ACT", t: "Test ride", d: "Confirmed bike" },
   { n: 9, ph: "ACT", t: "Follow-up", d: "Within 24 hours" },
   { n: 10, ph: "ACT", t: "Sale", d: "Dealer sells" },
@@ -77,11 +98,13 @@ const DEALERS = [
   { name: "Koregaon Park Riders, Pune", lat: 18.5362, lng: 73.8939, city: "Pune" }
 ];
 
+// Leads by pincode cluster this week, from AstraMoto's own consented leads (fictitious).
 const DEMAND = [
-  { area: "Andheri East and Powai", lat: 19.115, lng: 72.885, change: "+40%", model: "TrailX 310", r: 2600 },
-  { area: "Bandra", lat: 19.06, lng: 72.835, change: "+12%", model: "Nomad 250", r: 1500 },
-  { area: "Thane", lat: 19.21, lng: 72.97, change: "+18%", model: "Velocity X310", r: 1900 },
-  { area: "Hinjewadi", lat: 18.59, lng: 73.74, change: "+33%", model: "Velocity 200", r: 2300 }
+  { area: "Andheri East and Powai", lat: 19.115, lng: 72.885, leads: 412, model: "TrailX 310", r: 2600 },
+  { area: "Bandra", lat: 19.06, lng: 72.835, leads: 188, model: "Nomad 250", r: 1500 },
+  { area: "Thane West", lat: 19.21, lng: 72.97, leads: 265, model: "Velocity X310", r: 1900 },
+  { area: "Hinjewadi", lat: 18.59, lng: 73.74, leads: 344, model: "Velocity 200", r: 2300 },
+  { area: "Kharghar", lat: 19.047, lng: 73.07, leads: 140, model: "Velocity 200", r: 1700, unserved: "nearest Premium Pickup dealer is 9 km away" }
 ];
 
 const CHANNELS = [

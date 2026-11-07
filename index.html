@@ -27,6 +27,7 @@
     <select id="persona" title="Choose a customer">
       <option value="rohan">Rohan · TrailX 310 · Mumbai</option>
       <option value="neha">Neha · Velocity 200 · Pune</option>
+      <option value="imran">Imran · Velocity X310 · Thane (dealer misses the lead)</option>
     </select>
     <button id="autoplay" class="primary">▶ Play journey</button>
     <button id="reset">Reset</button>
@@ -84,15 +85,15 @@
 
 <!-- AGENTS VIEW -->
 <section class="view" id="view-agents">
-  <h2>Nine AI agents, one job each</h2>
-  <p class="lead">Agents never sell, never negotiate and never contact anyone without consent. A human makes the first call and the dealer makes every sale.</p>
+  <h2>Five AI agents, one job each</h2>
+  <p class="lead">Agents never sell, never negotiate and never contact anyone without consent. A human makes the first call and the dealer makes every sale. Only the Card Agent uses a language model; the other four are rules and workflows.</p>
   <div class="agents" id="agentcards"></div>
 </section>
 
 <!-- MAP VIEW -->
 <section class="view" id="view-map">
   <h2>Routing and regional demand</h2>
-  <p class="lead">The Routing Agent sends each lead to the nearest Premium Pickup dealer by pincode. Area demand comes only from aggregated reports, never from identified people.</p>
+  <p class="lead">The Score-and-Route Agent sends each lead to the nearest Premium Pickup dealer by pincode. Demand by area comes from AstraMoto's own consented leads, never from identified viewers.</p>
   <div class="map-wrap"><div id="map"></div><div class="map-side" id="mapside"></div></div>
 </section>
 

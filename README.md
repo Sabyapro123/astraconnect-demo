@@ -10,23 +10,23 @@ The demo follows one buyer from a creator video to a confirmed sale in eleven st
 2. SENSE. He scans a QR code at a Ride Circle town hall and lands in WhatsApp.
 3. SENSE. He runs the EMI calculator twice and compares one rival bike.
 4. SENSE. He raises his hand with an OTP and gives consent level 3.
-5. THINK. Nine agents score him, pick the dealer and write a Pickup Card.
-6. ACT. The WhatsApp Agent replies within 30 seconds.
-7. ACT. A human advisor calls within 15 minutes, already knowing his context.
+5. THINK. The Score-and-Route Agent rates him and picks the dealer, and the Card Agent writes a Pickup Card.
+6. ACT. The Nudge Agent replies on WhatsApp within 30 seconds.
+7. ACT. A human calls within 15 minutes, already knowing his context. In showroom hours the dealer advisor is offered the lead first; after 5 minutes the Rider Desk takes it.
 8. ACT. He takes a test ride on a confirmed bike.
-9. ACT. The Follow-up Agent reaches him within 24 hours.
+9. ACT. The Nudge Agent follows up within 24 hours.
 10. ACT. The dealer closes the sale.
 11. LEARN. The coded sale goes back to Google and Meta, and the Control Tower updates RoMI.
 
-A second persona, Neha in Hinjewadi, Pune, runs the same flow for a Velocity 200.
+A second persona, Neha in Hinjewadi, Pune, runs the same flow for a Velocity 200. A third persona, Imran in Thane, asks at 2 pm while the showroom is open: the dealer advisor is busy, misses the 5-minute window, and the Rider Desk catches the lead.
 
 ## Tabs
 
 - Live demo: the customer's phone, the Rider Desk console, the agent activity log and the dealer advisor's phone, side by side.
 - Journey: all eleven steps with the agent, the data used and the time limit for each.
-- AI agents: the nine agents and what each one does.
-- Routing map: demand circles and dealers, with the route from the buyer to the chosen dealer.
-- Control Tower: contact speed, advisor context, test rides, cost per extra sale against the ₹15,422 hurdle, the RoMI gauge and the three attribution ledgers.
+- AI agents: the five agents (Capture, Score-and-Route, Card, Nudge and Learning) and what each one does. Only the Card Agent uses a language model.
+- Routing map: leads by pincode from AstraMoto's own data, dealers, the route from the buyer to the chosen dealer, and one area with no dealer nearby.
+- Control Tower: contact speed (target 55% within 15 minutes), advisor context, test rides, cost per extra sale against the ₹15,422 hurdle, the RoMI gauge and the three attribution ledgers.
 
 ## How to run it
 
@@ -37,7 +37,7 @@ For a two-screen video, open the page in two tabs. The tabs stay in sync through
 - `index.html?view=customer` shows only the customer's phone.
 - `index.html?view=desk` shows only the Rider Desk.
 - `index.html?view=advisor` shows only the dealer advisor's phone.
-- Add `&p=neha` to start with the Neha persona.
+- Add `&p=neha` or `&p=imran` to start with another persona.
 
 One real second equals one demo minute, so the 15-minute call timer runs out in 15 seconds.
 

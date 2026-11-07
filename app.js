@@ -10,7 +10,7 @@ const SOLO = params.get("view");
 let S; // state
 function fresh(personaKey) {
   return { persona: personaKey || "rohan", step: 0, cust: "video", waMsgs: [], emiRuns: 0, tenure: 36, compared: false,
-    phoneEntered: false, consent3: false, lead: null, leadT0: null, calledAt: null, ride: null, rideDone: false, booked: false, sold: false,
+    phoneEntered: false, consent3: false, lead: null, leadT0: null, calledAt: null, dealerOffer: false, dealerMissed: false, offerT0: null, ride: null, rideDone: false, booked: false, sold: false,
     log: [], agentLast: {}, cardOpened: false, slots: [], callOpen: false, clock: 0 };
 }
 S = fresh(params.get("p") || "rohan");
@@ -26,8 +26,8 @@ if (bc) bc.onmessage = e => dispatch(e.data.type, e.data.payload, true);
 
 /* demo clock: the story starts at 9:38 pm on Sunday for Rohan */
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-function baseSec() { return S.persona === "rohan" ? 21 * 3600 + 38 * 60 : 20 * 3600 + 12 * 60; }
-function baseDay() { return S.persona === "rohan" ? 0 : 1; }
+function baseSec() { const [h, m] = P().base[1].split(":").map(Number); return h * 3600 + m * 60; }
+function baseDay() { return P().base[0]; }
 function at(d, hm) { const [h, m] = hm.split(":").map(Number); return d * 86400 + h * 3600 + m * 60 - baseSec(); }
 function clockLabel(addSec) {
   const t = baseSec() + addSec; const days = Math.floor(t / 86400); const r = ((t % 86400) + 86400) % 86400;
@@ -36,9 +36,11 @@ function clockLabel(addSec) {
   return `${day} ${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 const SCHED = { rohan: { town: [-14, "19:05"], ride: [6, "11:50"], follow: [6, "16:00"], book: [7, "10:15"], sale: [9, "12:30"] },
-                neha: { town: [-10, "19:30"], ride: [2, "19:25"], follow: [3, "09:30"], book: [3, "18:10"], sale: [5, "12:00"] } };
+                neha: { town: [-10, "19:30"], ride: [2, "19:25"], follow: [3, "09:30"], book: [3, "18:10"], sale: [5, "12:00"] },
+                imran: { town: [-9, "09:15"], ride: [2, "19:05"], follow: [3, "10:00"], book: [3, "17:30"], sale: [5, "12:00"] } };
 const SA = k => at(...SCHED[S.persona][k]);
 function agentLog(id, text, sec) {
+  id = id ? AGENT_MAP[id] : 0;
   const a = AGENTS.find(x => x.id === id);
   S.log.push({ t: clockLabel(sec), who: a ? a.name : "System", text, id });
   if (a) S.agentLast[id] = text;
@@ -53,8 +55,8 @@ function reduce(type, p) {
     case "TO": S.cust = p.screen; if (p.step) S.step = Math.max(S.step, p.step); break;
     case "TOWNHALL_QR":
       S.step = Math.max(S.step, 2); S.cust = "wa";
-      S.waMsgs.push({ me: true, text: per.key === "rohan" ? "Hi! Powai Ride Circle" : "Hi! First Bike Night" });
-      S.waMsgs.push({ me: false, text: `Welcome ${per.name.split(" ")[0]}! ${per.town}: this Thursday, 7 pm, with owners and demo bikes. Reply STOP anytime.` });
+      S.waMsgs.push({ me: true, text: per.townHi });
+      S.waMsgs.push({ me: false, text: `Welcome ${per.name.split(" ")[0]}! ${per.town}: ${per.townWhen}, with owners and demo bikes. Reply STOP anytime.` });
       agentLog(1, `QR scan from "${per.townPoster}" received`, SA("town"));
       agentLog(2, "WhatsApp opt-in recorded: consent level 2", SA("town") + 2);
       agentLog(5, `Sent ${per.town} details`, SA("town") + 4);
@@ -68,22 +70,28 @@ function reduce(type, p) {
     case "THINK":
       S.step = Math.max(S.step, 5);
       agentLog(2, `Joined website session + earlier WhatsApp contact into one profile; consent level 3`, 125);
-      agentLog(3, `Tier ${per.tier}, score ${per.score}/100 (3+ touchpoints, EMI used); value per lead ${fmt(per.evl)}`, 128);
-      agentLog(4, `Pincode ${per.pincode}: routed to ${per.dealer}; advisor ${per.advisor}; ${per.bike} free ${per.rideSlot}`, 134);
+      agentLog(3, `Tier ${per.tier}, score ${per.score}/100 (${per.tier === "A" ? "3+ touchpoints, EMI used" : "EMI calculator used"}); value per lead ${fmt(per.evl)}`, 128);
+      agentLog(4, `Pincode ${per.pincode}: ${per.dealer}; advisor ${per.advisor}; ${per.bike} free ${per.rideSlot}`, 134);
+      if (per.dealerFirst) { S.dealerOffer = true; S.offerT0 = p.t0 || Date.now(); agentLog(4, `Showroom open: Card offered to ${per.advisor} first, 5 minutes to accept`, 136); }
+      else agentLog(4, "Showroom closed: Card sent straight to the Rider Desk", 136);
       agentLog(6, `Pickup Card written for ${per.short}; opening line and next best action ready`, 140);
       S.lead = { tier: per.tier, evl: per.evl }; S.leadT0 = p.t0 || Date.now();
-      S.slots = [per.rideSlot, per.key === "rohan" ? "Saturday 4:00 pm" : "Thursday 7:00 pm", per.key === "rohan" ? "Sunday 10:00 am" : "Saturday 11:00 am"];
+      S.slots = [per.rideSlot, ...per.altSlots];
       break;
+    case "DEALER_MISS":
+      if (!S.dealerOffer) break;
+      S.dealerOffer = false; S.dealerMissed = true;
+      agentLog(4, `${per.advisor} did not accept within 5 minutes (with a walk-in customer); lead passed to the Rider Desk automatically`, 420); break;
     case "WA_ACK":
       S.step = Math.max(S.step, 6); S.cust = "wa";
       S.waMsgs.push({ me: false, text: `Hi ${per.name.split(" ")[0]}, your ${per.model} quote is saved: about ${fmt(per.emiTarget)} a month for 36 months. Our riding expert will call you in a few minutes.` });
       agentLog(5, "Utility message sent: quote saved, call coming", 180); break;
-    case "OPEN_CALL": S.callOpen = true; S.cardOpened = true; agentLog(0, "Rider Desk agent opened the Pickup Card", 470); break;
+    case "OPEN_CALL": S.callOpen = true; S.cardOpened = true; agentLog(0, "Rider Desk agent opened the Pickup Card", per.dealerFirst ? 500 : 470); break;
     case "BOOK":
       S.step = Math.max(S.step, 7); S.ride = p.slot; S.callOpen = false; S.calledAt = p.min || 6;
       S.waMsgs.push({ me: false, text: `Confirmed: ${per.model} test ride, ${p.slot} at ${per.dealer}. ${per.bike} is reserved for you. We will remind you 24 hours and 2 hours before.` });
-      agentLog(7, `Ride booked: ${p.slot}, ${per.bike} reserved; reminders scheduled`, 490);
-      agentLog(4, `Card and ride pushed to ${per.advisor}'s phone`, 492); break;
+      agentLog(7, `Ride booked: ${p.slot}, ${per.bike} reserved; reminders scheduled`, per.dealerFirst ? 560 : 490);
+      agentLog(4, `Card and ride pushed to ${per.advisor}'s phone; the lead stays with the dealer`, per.dealerFirst ? 562 : 492); break;
     case "RIDE_DONE":
       S.step = Math.max(S.step, 8); S.rideDone = true;
       agentLog(7, `Ride completed: ${per.rideType}`, SA("ride")); break;
@@ -116,22 +124,21 @@ function waView() {
   const per = P();
   return `<div class="wa"><div class="wa-h">AstraMoto ✓ <span style="font-weight:400;font-size:11px">WhatsApp Business</span></div>
   ${S.waMsgs.map(m => `<div class="bub ${m.me ? "me" : ""}">${m.text}${m.book && !S.booked ? `<button class="btn o" onclick="dispatch('CUST_BOOK')">Book my ${per.model}</button>` : ""}<div class="tm">✓✓</div></div>`).join("")}</div>
-  ${S.step < 4 ? `<button class="btn n" onclick="dispatch('TO',{screen:'product',step:3})">Two weeks later: ${per.key === "rohan" ? "Sunday 9:38 pm" : "Monday 8:12 pm"}, tap the creator's link ›</button>` : ""}
+  ${S.step < 4 ? `<button class="btn n" onclick="dispatch('TO',{screen:'product',step:3})">Two weeks later: ${per.later}, tap the creator's link ›</button>` : ""}
   ${S.booked ? `<div class="card" style="text-align:center">🎉 Booking sent to ${per.dealer}. The dealer completes the sale.</div>` : ""}`;
 }
 function renderCustomer() {
   const per = P(); const el = $("#cust-screen"); let h = "";
   if (S.cust === "video") {
-    const ig = per.key === "neha";
-    h = `<div class="app-h">${ig ? "Instagram" : "YouTube"}</div>
+    h = `<div class="app-h">${per.app}</div>
     <div class="yt"><div class="thumb"><div class="play">▶</div></div>
       <div class="meta"><b>${per.creative}</b><div class="ch">${per.creator} · Sponsored</div></div>
       <div class="adbox"><b>AstraMoto ${per.model}</b><br>Shown only to people within 3 km of a Premium Pickup dealer.<br>
       <span class="small">Tagged link: astramoto.in/t/${per.creativeId}</span>
       <button class="btn o" onclick="dispatch('TO',{screen:'townhall',step:1})">Keep watching ›</button></div></div>
-    <p class="small">Google and Meta never tell AstraMoto who watched. AstraMoto only learns about ${per.name.split(" ")[0]} when ${per.key === "rohan" ? "he" : "she"} chooses to respond.</p>`;
+    <p class="small">Google and Meta never tell AstraMoto who watched. AstraMoto only learns about ${per.name.split(" ")[0]} when ${per.he} chooses to respond.</p>`;
   } else if (S.cust === "townhall") {
-    h = `<div class="app-h">A week later: a poster at a ${per.key === "rohan" ? "Powai cafe" : "Hinjewadi IT-park cafe"}</div>
+    h = `<div class="app-h">A week later: a poster at the ${per.townPlace}</div>
     <div class="card" style="text-align:center"><b>${per.town}</b><br>Meet owners · Ride demo bikes · Ask anything<div class="qr"></div><span class="small">Scan to join on WhatsApp</span>
     <button class="btn n" onclick="dispatch('TOWNHALL_QR')">Scan the QR code</button></div>`;
   } else if (S.cust === "wa") {
@@ -152,7 +159,7 @@ function renderCustomer() {
     <label class="f">OTP sent to your phone</label><input type="text" id="otp" placeholder="Enter 1234" value="${S.autoplaying ? "1234" : ""}">
     <div class="chk"><input type="checkbox" checked disabled> <span>Save my quote and build<span class="lvl">Level 2</span></span></div>
     <div class="chk"><input type="checkbox" id="c3" ${S.autoplaying ? "checked" : ""}> <span>Let my advisor see my research so I don't have to repeat myself<span class="lvl">Level 3</span></span></div>
-    <div class="small" style="margin-top:6px">Expires in 90 days. Withdraw anytime from WhatsApp. Calls only between 9 am and 10 pm.</div>
+    <div class="small" style="margin-top:6px">Expires in 90 days. Withdraw anytime from WhatsApp. Calls only between 9 am and 11 pm.</div>
     <button class="btn o" onclick="submitForm()">Save and request a call</button></div>`;
   } else if (S.cust === "wait") {
     h = `<div class="empty">⏳ Saving your build…</div>`;
@@ -166,19 +173,20 @@ function remaining() {
 }
 function renderDesk() {
   const per = P(); const rows = [];
-  if (S.lead) rows.push({ me: true, name: per.short, area: per.area, model: per.model, tier: per.tier, evl: per.evl, signal: "EMI twice, 1 rival, 3+ touchpoints" });
-  QUEUE_SEED.forEach(q => rows.push(q));
+  if (S.lead) rows.push({ me: true, name: per.short, area: per.area, model: per.model, tier: per.tier, evl: per.evl, signal: per.tier === "A" ? "EMI twice, 1 rival, 3+ touchpoints" : "EMI twice, 1 rival" });
+  QUEUE_SEED.filter(q => q.key !== per.key).slice(0, 4).forEach(q => rows.push(q));
   const rem = remaining();
-  $("#desk").innerHTML = `<div class="desk-h"><b>Priority queue · sorted by value per lead, not by arrival</b><span class="st">16 agents on duty · 9 am to 10 pm</span></div>
+  $("#desk").innerHTML = `<div class="desk-h"><b>Priority queue · sorted by value per lead, not by arrival</b><span class="st">${per.onDuty} agents on duty · 9 am to 11 pm</span></div>
   <table class="q"><tr><th>Lead</th><th>Area</th><th>Model</th><th>Tier</th><th>Value</th><th>Signal</th><th>15-min timer</th><th></th></tr>
   ${rows.map(r => `<tr class="${r.me && !S.calledAt ? "new" : ""}"><td><b>${r.name}</b></td><td>${r.area}</td><td>${r.model}</td><td><span class="tag ${r.tier}">${r.tier}</span></td><td>${fmt(r.evl)}</td><td>${r.signal}</td>
-  <td>${r.me ? (S.calledAt != null ? `<span class="timer ok">Called at ${S.calledAt} min ✓</span>` : `<span class="timer ${rem < 5 ? "warn" : ""}" id="tmr">${fmtMin(rem)}</span>`) : (r.tier === "C" ? "Nurture, call in 24 h" : "Queued")}</td>
-  <td>${r.me && S.calledAt == null ? `<button class="btn g" style="margin:0;padding:5px 8px" onclick="dispatch('OPEN_CALL')">Open Card and call</button>` : ""}</td></tr>`).join("")}</table>
+  <td>${r.me ? (S.calledAt != null ? `<span class="timer ok">Called at ${S.calledAt} min ✓</span>` : (S.dealerOffer ? `<span class="timer" id="tmr">${fmtMin(rem)}</span><div class="small">Offered to ${per.advisor} first</div>` : `<span class="timer ${rem < 5 ? "warn" : ""}" id="tmr">${fmtMin(rem)}</span>${S.dealerMissed ? `<div class="small" style="color:var(--orange)">Passed from dealer at 5 min</div>` : ""}`)) : "Queued, call within 15 min"}</td>
+  <td>${r.me && S.calledAt == null && !S.dealerOffer ? `<button class="btn g" style="margin:0;padding:5px 8px" onclick="dispatch('OPEN_CALL')">Open Card and call</button>` : ""}</td></tr>`).join("")}</table>
   ${S.callOpen ? `<div class="callbox"><b>📞 Calling ${per.name} · Tier ${per.tier}</b>${cardHTML(true)}
-   <div class="script">"${per.opening}"</div><div class="small">Confirmed demo-bike slots from the Ride Agent:</div>
+   <div class="script">"${per.opening}"</div><div class="small">Confirmed demo-bike slots from RideNow 2.0:</div>
    ${S.slots.map((s, i) => `<span class="slot ok" onclick="dispatch('BOOK',{slot:'${s}',min:${Math.max(1, Math.min(14, Math.round(15 - (remaining() ?? 9))))}})">✓ ${s}</span>`).join("")}</div>` : ""}
-  ${!S.lead ? `<div class="small" style="margin-top:8px">Waiting for new leads. Tier A and B leads are called within 15 minutes; Tier C gets WhatsApp nurture and one call within 24 hours.</div>` : ""}`;
+  ${!S.lead ? `<div class="small" style="margin-top:8px">Waiting for new leads. Every lead from 9 am to 11 pm is called within 15 minutes, in order of value. In showroom hours the dealer advisor gets Tier A and B leads first and has 5 minutes to accept.</div>` : ""}`;
 }
+function fmtClk(m) { const mm = Math.max(0, Math.floor(m)), ss = Math.max(0, Math.floor((m - mm) * 60)); return `${mm}:${String(ss).padStart(2, "0")}`; }
 function fmtMin(m) { if (m == null) return ""; const mm = Math.max(0, Math.floor(m)), ss = Math.max(0, Math.floor((m - mm) * 60)); return `${mm}:${String(ss).padStart(2, "0")} left`; }
 function cardHTML(compact) {
   const per = P();
@@ -196,11 +204,12 @@ function cardHTML(compact) {
 }
 function renderAdvisor() {
   const per = P(); const el = $("#adv-screen");
-  if (S.step < 5) { el.innerHTML = `<div class="app-h">${per.dealer.split(",")[0]} · Dealer app</div><div class="card">Good evening, ${per.advisor}. Today: 6 walk-ins, 3 rides done.</div><div class="empty">No new Premium Pickup leads yet.</div>`; return; }
+  if (S.step < 5) { el.innerHTML = `<div class="app-h">${per.dealer.split(",")[0]} · Dealer app</div><div class="card">${per.hello}, ${per.advisor}. Today: 6 walk-ins, 3 rides done.</div><div class="empty">No new Premium Pickup leads yet.</div>`; return; }
   let h = `<div class="app-h">${per.dealer.split(",")[0]} · Dealer app</div>`;
-  if (!S.ride) h += `<div class="notif">🔔 New Tier ${per.tier} lead routed to you: ${per.short}, ${per.area}. Rider Desk is calling now.</div>`;
+  if (S.dealerOffer) h += `<div class="notif">🔔 New Tier ${per.tier} lead for you: ${per.short}, ${per.area}. Time left to accept: <b id="otmr">${fmtClk(offerLeft())}</b>. After that the Rider Desk calls. <button class="btn o" style="margin-top:6px" onclick="toast('In this story Kavita is with a walk-in customer, so the lead passes to the Rider Desk.')">Accept and call</button></div>`;
+  else if (!S.ride) h += `<div class="notif">🔔 New Tier ${per.tier} lead routed to you: ${per.short}, ${per.area}. ${S.dealerMissed ? "You were busy, so the Rider Desk is calling now. The lead stays yours." : "Showroom is closed, so the Rider Desk is calling now."}</div>`;
   else if (!S.rideDone) h += `<div class="notif">✅ Ride booked: ${S.ride}. ${per.bike} reserved. Card ready.</div>`;
-  else if (!S.sold) h += `<div class="notif">📋 Ride done. ${S.booked ? `${per.name.split(" ")[0]} wants to book!` : "Follow-up Agent has sent the photo and pre-approval link."}</div>`;
+  else if (!S.sold) h += `<div class="notif">📋 Ride done. ${S.booked ? `${per.name.split(" ")[0]} wants to book!` : "The Nudge Agent has sent the photo and pre-approval link."}</div>`;
   else h += `<div class="notif" style="background:var(--green)">🏁 Sale recorded. Credited to ${per.dealer.split(",")[0]}.</div>`;
   h += cardHTML(false);
   h += `<button class="btn n" ${!S.ride || S.rideDone ? "disabled" : ""} onclick="rideDone()">Mark test ride completed</button>
@@ -218,15 +227,15 @@ function renderAgents() {
 function renderJourney() {
   const per = P(); $("#jname").textContent = per.name.split(" ")[0];
   const rows = [
-    ["1. Discovery", `Watches "${per.creative}" by ${per.creator}`, "Ad shown only within 3 km of the dealer; area demand from aggregated reports", "None needed"],
-    ["2. Town hall", `Scans a QR at the ${per.town}`, "Signal Agent logs the source; WhatsApp Agent sends event details", "Level 2"],
+    ["1. Discovery", `Watches "${per.creative}" by ${per.creator}`, "Ad shown only within 3 km of the dealer", "None needed"],
+    ["2. Town hall", `Scans a QR at the ${per.town}`, "Capture Agent logs the source; Nudge Agent sends event details", "Level 2"],
     ["3. Research", `Runs the EMI twice (about ${fmt(per.emiTarget)} a month), compares ${per.rival}`, "Website events stored against an anonymous ID", "Level 1"],
-    ["4. Raises hand", "Saves the build, verifies OTP, ticks level 3", "Signal and Identity Agents join everything into one profile", "Level 3"],
-    ["5. Think", "Nothing; still on the page", `Tier ${per.tier}, score ${per.score}; routed to ${per.dealer}; Card written; 15-minute timer starts`, "Level 3"],
-    ["6. WhatsApp", "Gets \"quote saved, call coming\"", "WhatsApp Agent, within 30 seconds", "Level 3"],
-    ["7. Human call", "Takes the Rider Desk call", `EMI answered first; ${per.rideSlot} ride booked on ${per.bike}`, "Level 3"],
-    ["8. Ride", `Rides: ${per.rideType}`, `${per.advisor} opens the Card; Ride Agent sent reminders`, "Level 3"],
-    ["9. Follow-up", "Gets a ride photo and pre-approval link", `Follow-up Agent; ${per.advisor} alerted if no booking`, "Level 3"],
+    ["4. Raises hand", "Saves the build, verifies OTP, ticks level 3", "Capture Agent joins everything into one profile", "Level 3"],
+    ["5. Think", "Nothing; still on the page", `Score-and-Route Agent: Tier ${per.tier}, score ${per.score}, ${per.dealer}; ${per.dealerFirst ? "showroom open, so the dealer advisor is offered the lead first" : "showroom closed, so the Rider Desk gets it"}; Card Agent writes the Card; 15-minute timer starts`, "Level 3"],
+    ["6. WhatsApp", "Gets \"quote saved, call coming\"", "Nudge Agent, within 30 seconds", "Level 3"],
+    ["7. Human call", per.dealerFirst ? "Takes the Rider Desk call after the dealer misses the 5-minute window" : "Takes the Rider Desk call", `EMI answered first; ${per.rideSlot} ride booked on ${per.bike}`, "Level 3"],
+    ["8. Ride", `Rides: ${per.rideType}`, `${per.advisor} opens the Card; Nudge Agent sent reminders`, "Level 3"],
+    ["9. Follow-up", "Gets a ride photo and pre-approval link", `Nudge Agent; ${per.advisor} alerted if no booking`, "Level 3"],
     ["10. Sale", `Books and buys at ${per.dealer}`, "The dealer makes the sale", "Normal paperwork"],
     ["11. Learning", "Gets a referral QR code", "Learning Agent sends the coded sale to Google and Meta; credits creator and poster", "Hashed data only"]
   ];
@@ -235,7 +244,7 @@ function renderJourney() {
 function renderTower() {
   const live = { leads: S.lead ? 1 : 0, called: S.calledAt != null ? 1 : 0, cards: S.cardOpened ? 1 : 0, rides: S.ride ? 1 : 0, sales: S.sold ? 1 : 0 };
   const k = [
-    ["Called within 15 minutes", "11% → 45%", `This session: ${live.called}/${live.leads}`],
+    ["Called within 15 minutes", "11% → 55%", `This session: ${live.called}/${live.leads}`],
     ["Advisor knew my context", "22% → 70%", `Cards opened: ${live.cards}`],
     ["Test rides completed", "69% → 82%", `Rides confirmed: ${live.rides}`],
     ["Cost per extra sale", "₹8,342", "Hurdle ₹15,422"],
@@ -266,7 +275,7 @@ function initMap() {
   if (map || !window.L) return;
   map = L.map("map").setView([19.1, 72.9], 11);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "© OpenStreetMap contributors" }).addTo(map);
-  DEMAND.forEach(d => L.circle([d.lat, d.lng], { radius: d.r, color: "#C55A11", fillColor: "#C55A11", fillOpacity: .18, weight: 1 }).addTo(map).bindTooltip(`${d.area}: ${d.model} interest ${d.change} this week (aggregated, 50+ users per row)`));
+  DEMAND.forEach(d => L.circle([d.lat, d.lng], { radius: d.r, color: d.unserved ? "#B71C1C" : "#C55A11", fillColor: d.unserved ? "#B71C1C" : "#C55A11", fillOpacity: .18, weight: 1 }).addTo(map).bindTooltip(`${d.area}: ${d.leads} leads this week, mostly ${d.model}${d.unserved ? "; " + d.unserved : ""}`));
   DEALERS.forEach(d => L.marker([d.lat, d.lng]).addTo(map).bindTooltip(d.name));
   drawRoute();
 }
@@ -281,12 +290,12 @@ function drawRoute() {
 }
 function renderMapSide() {
   const per = P();
-  $("#mapside").innerHTML = `<div class="panel"><h3>Routing Agent decision</h3><div class="small">Lead</div><b>${per.short}, ${per.area} (${per.pincode})</b>
+  $("#mapside").innerHTML = `<div class="panel"><h3>Score-and-Route Agent decision</h3><div class="small">Lead</div><b>${per.short}, ${per.area} (${per.pincode})</b>
   <div class="small" style="margin-top:6px">Nearest Premium Pickup dealer</div><b>${per.dealer}</b>
-  <div class="small" style="margin-top:6px">Advisor on duty</div><b>${per.advisor}</b>
+  <div class="small" style="margin-top:6px">Who calls first</div><b>${per.dealerFirst ? per.advisor + " (showroom open); Rider Desk after 5 minutes" : "Rider Desk (showroom closed); Card sent to " + per.advisor}</b>
   <div class="small" style="margin-top:6px">Demo bike</div><b>${per.bike}, free ${per.rideSlot}</b></div>
-  <div class="panel"><h3>Regional demand this week</h3>${DEMAND.map(d => `<div class="bar"><div class="n">${d.area}</div><div class="val" style="width:auto">${d.model} ${d.change}</div></div>`).join("")}
-  <div class="small">From aggregated reports only (at least 50 users per row). No individual is identified. When demand rises, the Ride Agent moves a demo bike and the Learning Agent shifts local budget.</div></div>`;
+  <div class="panel"><h3>Leads by pincode this week</h3>${DEMAND.map(d => `<div class="bar"><div class="n">${d.area}</div><div class="val" style="width:auto;${d.unserved ? "color:#B71C1C;font-weight:700" : ""}">${d.leads} leads</div></div>`).join("")}
+  <div class="small">From AstraMoto's own consented leads, so no extra data contract is needed. Red marks demand with no Premium Pickup dealer within 5 km (Kharghar, nearest dealer 9 km away). That list goes to the network team as a candidate for a new outlet.</div></div>`;
 }
 
 /* ---------------- actions ---------------- */
@@ -296,6 +305,7 @@ async function submitForm() {
   if (c3 && !c3.checked) { toast("Without level 3 consent the advisor sees nothing. Tick it to share your research."); return; }
   dispatch("SUBMIT"); await sleep(1200); dispatch("THINK", { t0: Date.now() }); await sleep(1400); dispatch("WA_ACK");
 }
+function offerLeft() { if (!S.offerT0) return 5; return Math.max(0, 5 - (Date.now() - S.offerT0) / 1000); }
 async function rideDone() { dispatch("RIDE_DONE"); await sleep(1500); dispatch("FOLLOWUP"); }
 async function sale() { dispatch("SALE"); await sleep(1500); dispatch("LEARN"); toast("Loop closed: the sale now teaches Google and Meta to find more buyers like this."); }
 function toast(t) { const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 3200); }
@@ -304,7 +314,7 @@ function caption(t) { $("#caption").innerHTML = t; }
 /* ---------------- autoplay ---------------- */
 let runId = 0;
 async function autoplay() {
-  const id = ++runId; const per = P(); const first = per.name.split(" ")[0]; const he = per.key === "rohan" ? "he" : "she";
+  const id = ++runId; const per = P(); const first = per.name.split(" ")[0]; const he = per.he;
   const go = async (ms) => { await sleep(ms); if (id !== runId) throw "stop"; };
   try {
     dispatch("RESET", { persona: per.key }); S.autoplaying = true; showView("live");
@@ -318,15 +328,21 @@ async function autoplay() {
     dispatch("TO", { screen: "form" });
     caption(`<b>Step 4, SENSE.</b> ${first} saves the build, verifies the OTP and ticks "Let my advisor see my research". This is level 3 consent.`); await go(4000);
     S.autoplaying = true; dispatch("SUBMIT"); await go(1200);
-    caption(`<b>Step 5, THINK.</b> In seconds, the agents join everything into one profile, score ${first} Tier ${per.tier} (${per.score}/100), route ${per.key === "rohan" ? "him" : "her"} to ${per.dealer} and write the Pickup Card. A 15-minute timer starts on the Rider Desk.`);
-    dispatch("THINK", { t0: Date.now() }); await go(3500);
-    caption(`<b>Step 6, ACT.</b> The WhatsApp Agent confirms the saved quote within 30 seconds. This is an acknowledgement, not the response: a human will call.`);
-    dispatch("WA_ACK"); await go(4500);
-    caption(`<b>Step 7, ACT.</b> A Rider Desk agent opens the Card and calls. The EMI question is answered first, and the ride is booked on a demo bike the Ride Agent has confirmed.`);
-    dispatch("OPEN_CALL"); await go(4000); dispatch("BOOK", { slot: per.rideSlot, min: 6 }); await go(3000);
+    caption(`<b>Step 5, THINK.</b> In seconds, the Capture Agent joins everything into one profile, the Score-and-Route Agent rates ${first} Tier ${per.tier} (${per.score}/100) and picks ${per.dealer}, and the Card Agent writes the Pickup Card. ${per.dealerFirst ? `The showroom is open, so ${per.advisor} is offered the lead first.` : "The showroom is closed, so the lead goes straight to the Rider Desk."} A 15-minute timer starts.`);
+    dispatch("THINK", { t0: Date.now() }); await go(per.dealerFirst ? 2000 : 3500);
+    caption(`<b>Step 6, ACT.</b> The Nudge Agent confirms the saved quote within 30 seconds. This is an acknowledgement, not the response: a human will call.`);
+    dispatch("WA_ACK"); await go(per.dealerFirst ? 1000 : 4500);
+    if (per.dealerFirst) {
+      caption(`<b>Step 7, ACT.</b> ${per.advisor} gets the Card on her phone with 5 minutes to accept. She is with a walk-in customer and cannot take it. Watch the timer.`);
+      while (offerLeft() > 0) await go(200);
+      dispatch("DEALER_MISS");
+      caption(`<b>Step 7, ACT.</b> At minute 5 the lead moves to the Rider Desk automatically, and a Desk agent calls at minute 7. The customer never waits for a busy dealer, and the lead and the sale stay with ${per.dealer.split(",")[0]}.`);
+      await go(1000);
+    } else caption(`<b>Step 7, ACT.</b> A Rider Desk agent opens the Card and calls. The ${per.tier === "A" ? "EMI" : "finance"} question is answered first, and the ride is booked on a demo bike RideNow has confirmed.`);
+    dispatch("OPEN_CALL"); await go(per.dealerFirst ? 1000 : 4000); dispatch("BOOK", { slot: per.rideSlot, min: per.dealerFirst ? 7 : 6 }); await go(per.dealerFirst ? 4000 : 3000);
     caption(`<b>Step 8, ACT.</b> ${per.advisor} at the dealership already knows ${first}. ${first} takes a ${per.rideType}.`); await go(3500);
     dispatch("RIDE_DONE"); await go(1500);
-    caption(`<b>Step 9, ACT.</b> The Follow-up Agent sends a ride photo and a finance pre-approval link within 24 hours. ${first} taps "Book".`);
+    caption(`<b>Step 9, ACT.</b> The Nudge Agent sends a ride photo and a finance pre-approval link within 24 hours. ${first} taps "Book".`);
     dispatch("FOLLOWUP"); await go(3500); dispatch("CUST_BOOK"); await go(2500);
     caption(`<b>Step 10, ACT.</b> The dealer confirms the sale. AstraMoto never sells directly; the dealer is credited.`);
     dispatch("SALE"); await go(3000);
@@ -347,7 +363,7 @@ $("#persona").value = S.persona;
 $("#persona").onchange = e => { runId++; dispatch("PERSONA", { persona: e.target.value }); drawRoute(); caption(`Now following ${P().name}, ${P().age}, ${P().area}, looking at the ${P().model}.`); };
 $("#autoplay").onclick = autoplay;
 $("#reset").onclick = () => { runId++; dispatch("RESET", {}); caption('Reset. Press "Play journey" or click through the phone yourself.'); };
-setInterval(() => { if (S.leadT0 && S.calledAt == null) { const t = document.getElementById("tmr"); if (t) { const r = remaining(); t.textContent = fmtMin(r); t.className = "timer " + (r < 5 ? "warn" : ""); } } }, 250);
+setInterval(() => { const o = document.getElementById("otmr"); if (o && S.dealerOffer) o.textContent = fmtClk(offerLeft()); if (S.dealerOffer && offerLeft() <= 0 && !S.autoplaying) dispatch("DEALER_MISS"); if (S.leadT0 && S.calledAt == null) { const t = document.getElementById("tmr"); if (t) { const r = remaining(); t.textContent = fmtMin(r); t.className = "timer " + (r < 5 ? "warn" : ""); } } }, 250);
 
 if (SOLO) {
   document.body.classList.add("solo");
